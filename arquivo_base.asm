@@ -1,0 +1,17 @@
+; Comentario pog
+; Ignorado tbm
+
+#DADOS
+        ARMAZENE BASE 200 0x10
+        ARMAZENE VLR_SOMADO 201 0x0A
+        ARMAZENE RESULTADO 202
+
+#CONFIGURACAO
+        ACUMULADOR 0
+        PONTEIRO 10
+
+#PROGRAMA
+        CARREGUE_DE BASE
+        SOME_DE VLR_SOMADO
+        GUARDE_EM RESULTADO
+        PARE_AGORA
