@@ -15,11 +15,18 @@ pub fn main() !void {
 
     var file_reader = arquivo.reader(&buffer);
 
-    const reader: *std.Io.Reader = &file_reader.interface;
+    //  const reader: *std.Io.Reader = &file_reader.interface;
+    //std.debug.print("{s}\n", .{reader.buffered()});
 
-    try reader.fillMore();
+    while (true) {
+        const line = file_reader.interface.takeDelimiterInclusive('\n') catch |err| switch (err) {
+            error.EndOfStream => break,
+            error.ReadFailed => |e| return file_reader.err orelse e,
+            else => |e| return e,
+        };
 
-    std.debug.print("{s}\n", .{reader.buffered()});
+        std.debug.print("Linha: {s}\n", .{line});
+    }
 
     std.debug.print("Rodou ate o fim!\n", .{});
 }
