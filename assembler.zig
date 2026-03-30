@@ -4,24 +4,82 @@ var ac: u8 = 0;
 var pc: u8 = 0;
 
 const Area = enum { dados, configuracao, programa };
-const Tipo_Token = enum { endereco, dado, operacao, variavel };
+const Tipo_Token = enum { endereco, dado, operacao, definicao_config, definicao_variavel, nome_variavel, valor };
 
 const Token = struct {
     area: Area,
     tipo: Tipo_Token,
-    dado: []u8,
+    dado: []const u8,
+
+    pub fn ImprimirToken(self: Token) void {
+        std.debug.print("Token na area: {s}, tipo: {s}, dado: {s}\n", .{ @tagName(self.area), @tagName(self.tipo), self.dado });
+    }
 };
 
-pub fn tratarDados(line: []const u8) void {
-    std.debug.print("Linha dentro da tratarDados: {s}\n", .{line});
+pub fn tratarDados(lista: *std.ArrayList(Token), alocator: std.mem.Allocator, line: []const u8) std.mem.Allocator.Error!void {
+    var iterador = std.mem.tokenizeAny(u8, line, &std.ascii.whitespace);
+
+    var index: usize = 0;
+
+    while (iterador.next()) |palavra| {
+        switch (index) {
+            0 => {
+                try lista.append(alocator, Token{ .area = Area.dados, .tipo = Tipo_Token.definicao_variavel, .dado = palavra });
+            },
+            1 => {
+                try lista.append(alocator, Token{ .area = Area.dados, .tipo = Tipo_Token.nome_variavel, .dado = palavra });
+            },
+            2 => {
+                try lista.append(alocator, Token{ .area = Area.dados, .tipo = Tipo_Token.endereco, .dado = palavra });
+            },
+            3 => {
+                try lista.append(alocator, Token{ .area = Area.dados, .tipo = Tipo_Token.valor, .dado = palavra });
+            },
+            else => {},
+        }
+
+        index = index + 1;
+    }
 }
 
-pub fn tratarConfiguracao(line: []const u8) void {
-    std.debug.print("Linha dentro do tratarConfiguracao: {s}\n", .{line});
+pub fn tratarConfiguracao(lista: *std.ArrayList(Token), alocator: std.mem.Allocator, line: []const u8) std.mem.Allocator.Error!void {
+    var iterador = std.mem.tokenizeAny(u8, line, &std.ascii.whitespace);
+
+    var index: usize = 0;
+
+    while (iterador.next()) |palavra| {
+        switch (index) {
+            0 => {
+                try lista.append(alocator, Token{ .area = Area.configuracao, .tipo = Tipo_Token.definicao_config, .dado = palavra });
+            },
+            1 => {
+                try lista.append(alocator, Token{ .area = Area.configuracao, .tipo = Tipo_Token.valor, .dado = palavra });
+            },
+            else => {},
+        }
+
+        index = index + 1;
+    }
 }
 
-pub fn tratarPrograma(line: []const u8) void {
-    std.debug.print("Linha dentro do tratarPrograma: {s}\n", .{line});
+pub fn tratarPrograma(lista: *std.ArrayList(Token), alocator: std.mem.Allocator, line: []const u8) std.mem.Allocator.Error!void {
+    var iterador = std.mem.tokenizeAny(u8, line, &std.ascii.whitespace);
+
+    var index: usize = 0;
+
+    while (iterador.next()) |palavra| {
+        switch (index) {
+            0 => {
+                try lista.append(alocator, Token{ .area = Area.programa, .tipo = Tipo_Token.operacao, .dado = palavra });
+            },
+            1...2 => {
+                try lista.append(alocator, Token{ .area = Area.programa, .tipo = Tipo_Token.endereco, .dado = palavra });
+            },
+            else => {},
+        }
+
+        index = index + 1;
+    }
 }
 
 pub fn main() !void {
@@ -30,7 +88,7 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
-    var mapa = std.AutoHashMap(Area, *const fn ([]const u8) void).init(gpa.allocator());
+    var mapa = std.AutoHashMap(Area, *const fn (*std.ArrayList(Token), std.mem.Allocator, []const u8) std.mem.Allocator.Error!void).init(gpa.allocator());
     defer mapa.deinit();
 
     try mapa.put(Area.configuracao, tratarConfiguracao);
@@ -48,6 +106,9 @@ pub fn main() !void {
 
     //  const reader: *std.Io.Reader = &file_reader.interface;
     //std.debug.print("{s}\n", .{reader.buffered()});
+
+    var listaDeTokens: std.ArrayList(Token) = .empty;
+    defer listaDeTokens.deinit(gpa.allocator());
 
     while (true) {
         const line = file_reader.interface.takeDelimiterInclusive('\n') catch |err| switch (err) {
@@ -82,8 +143,12 @@ pub fn main() !void {
         }
 
         if (mapa.get(areaAtual)) |funcao| {
-            funcao(linhaTratada);
+            try funcao(&listaDeTokens, gpa.allocator(), linhaTratada);
         }
+    }
+
+    for (listaDeTokens.items) |token| {
+        token.ImprimirToken();
     }
 
     std.debug.print("Rodou ate o fim!\n", .{});
