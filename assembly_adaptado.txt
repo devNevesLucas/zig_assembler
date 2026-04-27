@@ -1,0 +1,13 @@
+neander    |    adaptado
+
+NOP        | 
+STA end    | GUARDE_EM end
+LDA end    | CARREGUE_DE end
+ADD end    | SOME_DE end
+OR end     | OU end
+AND end    | E end
+NOT        | NEGADO
+JMP end    | PULE end
+JN end     | PN end
+JZ end     | PZ end
+HLT        | PARE_AGORA

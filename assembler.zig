@@ -6,6 +6,8 @@ var pc: u8 = 0;
 const Area = enum { dados, configuracao, programa };
 const Tipo_Token = enum { endereco, dado, operacao, definicao_config, definicao_variavel, nome_variavel, valor };
 
+const Mnemonico = enum { guarde_em, carregue_de, some_de, ou, e, negado, pule, pn, pz, pare_agora };
+
 const Token = struct {
     area: Area,
     tipo: Tipo_Token,
@@ -14,6 +16,36 @@ const Token = struct {
     pub fn ImprimirToken(self: Token) void {
         std.debug.print("Token na area: {s}, tipo: {s}, dado: {s}\n", .{ @tagName(self.area), @tagName(self.tipo), self.dado });
     }
+};
+
+const Token_Galho = struct {
+    tipo: Tipo_Token,
+    dado: []const u8,
+    seguinte: Token_Galho
+};
+
+const Token_Ramo = struct {
+    area: Area,
+    tipo: Tipo_Token,
+    dado: []const u8,
+    no_galho: Token_Galho
+};
+
+pub fn valorMnemonico(mnemonico: Mnemonico) i32 {
+    return switch (mnemonico) {
+        .nada => 0b0000,
+        .guarde_em => 0b0001,
+        .carregue_de => 0b0010,
+        .some_de => 0b0011,
+        .ou => 0b0100,
+        .e => 0b0101,
+        .negado => 0b0110,
+        .pule => 0b1000,
+        .pn => 0b1001,
+        .pz => 0b1010,
+        .pare_agora => 0b1111,
+        else => 0b0000
+    };
 };
 
 pub fn tratarDados(lista: *std.ArrayList(Token), alocator: std.mem.Allocator, line: []const u8) std.mem.Allocator.Error!void {
